@@ -182,7 +182,7 @@
 
         function connectWebSocket() {
             if (ws) ws.close();
-            ws = new WebSocket(`ws://localhost:8000/api/ws/${currentSessionId}`);
+            ws = new WebSocket(`ws://${window.location.host}/api/ws/${currentSessionId}`);
 
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);

@@ -15,7 +15,7 @@ async def chat(
         yield "[错误] MiniMax API Key 未设置"
         return
 
-    url = "https://api.minimax.chat/v1/text/chatcompletion_v2"
+    url = "https://api.minimaxi.com/v1/chat/completions"
 
     headers = {
         "Authorization": f"Bearer {api_key}",

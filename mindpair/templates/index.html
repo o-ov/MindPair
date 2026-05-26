@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindPair - 双 AI 协作设计</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .msg-ai-a { border-left: 3px solid #667eea; }
+        .msg-ai-b { border-left: 3px solid #764ba2; }
+        .thinking { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center">
+                <span class="text-white font-bold text-sm">M</span>
+            </div>
+            <h1 class="text-xl font-semibold text-gray-800">MindPair</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="btn-new-session" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition">新会话</button>
+            <button id="btn-settings" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition">设置</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- Sidebar: Sessions -->
+        <aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-4 border-b border-gray-200">
+                <h2 class="text-sm font-medium text-gray-500">会话列表</h2>
+            </div>
+            <div id="session-list" class="flex-1 overflow-y-auto scrollbar-thin p-2">
+                <!-- Sessions will be loaded here -->
+            </div>
+        </aside>
+
+        <!-- Chat Area -->
+        <main class="flex-1 flex flex-col bg-gray-50">
+            <!-- API Key Setup (if not set) -->
+            <div id="api-key-panel" class="hidden p-6 bg-white border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">配置 API Key</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">MiniMax API Key</label>
+                        <input type="password" id="key-minimax" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="sk-xxx">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">DeepSeek API Key</label>
+                        <input type="password" id="key-deepseek" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="sk-xxx">
+                    </div>
+                    <button id="btn-save-keys" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">保存</button>
+                </div>
+            </div>
+
+            <!-- Task Input -->
+            <div id="task-panel" class="hidden p-6 bg-white border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">输入任务目标</h3>
+                <div class="space-y-4">
+                    <textarea id="task-input" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="描述你的设计任务或产品目标..."></textarea>
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm text-gray-600">先手角色：</span>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="first-mover" value="A" checked class="text-indigo-600">
+                            <span class="text-sm">AI A (MiniMax)</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="first-mover" value="B" class="text-indigo-600">
+                            <span class="text-sm">AI B (DeepSeek)</span>
+                        </label>
+                    </div>
+                    <button id="btn-start" class="px-6 py-2 gradient-bg hover:opacity-90 text-white rounded-lg font-medium transition">开始协作</button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="messages-container" class="flex-1 overflow-y-auto scrollbar-thin p-6 space-y-4">
+                <div id="empty-state" class="flex flex-col items-center justify-center h-full text-gray-400">
+                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <p class="text-lg">选择一个会话或创建新会话开始</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let ws = null;
+        let defaults = null;
+
+        async function loadDefaults() {
+            const res = await fetch('/api/settings/defaults');
+            defaults = await res.json();
+        }
+
+        async function checkKeysStatus() {
+            try {
+                const res = await fetch('/api/settings/keys/status');
+                const status = await res.json();
+                if (!status.minimax || !status.deepseek) {
+                    document.getElementById('api-key-panel').classList.remove('hidden');
+                }
+            } catch (e) {
+                document.getElementById('api-key-panel').classList.remove('hidden');
+            }
+        }
+
+        async function loadSessions() {
+            const res = await fetch('/api/sessions/');
+            const sessions = await res.json();
+            const list = document.getElementById('session-list');
+            list.innerHTML = sessions.map(s => `
+                <div class="session-item p-3 rounded-lg cursor-pointer hover:bg-gray-100 ${s.id === currentSessionId ? 'bg-indigo-50' : ''}" data-id="${s.id}">
+                    <div class="text-sm font-medium text-gray-800 truncate">${s.title}</div>
+                    <div class="text-xs text-gray-400">${new Date(s.updated_at).toLocaleString()}</div>
+                </div>
+            `).join('');
+        }
+
+        async function createSession() {
+            const res = await fetch('/api/sessions/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: '新会话' })
+            });
+            const session = await res.json();
+            await loadSessions();
+            selectSession(session.id);
+        }
+
+        async function selectSession(id) {
+            currentSessionId = id;
+            document.querySelectorAll('.session-item').forEach(el => el.classList.remove('bg-indigo-50'));
+            document.querySelector(`[data-id="${id}"]`)?.classList.add('bg-indigo-50');
+
+            const res = await fetch(`/api/sessions/${id}`);
+            const session = await res.json();
+
+            const msgsRes = await fetch(`/api/sessions/${id}/messages`);
+            const messages = await msgsRes.json();
+
+            const container = document.getElementById('messages-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (messages.length === 0) {
+                emptyState.classList.remove('hidden');
+                container.innerHTML = '';
+                container.appendChild(emptyState);
+                document.getElementById('task-panel').classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                container.innerHTML = messages.map(m => `
+                    <div class="msg-ai-${m.role.toLowerCase()} bg-white rounded-lg p-4 shadow-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="font-medium text-sm ${m.role === 'A' ? 'text-indigo-600' : 'text-purple-600'}">
+                                ${m.role === 'A' ? '产品大神张小龙 (MiniMax)' : '产品大神张小龙 (DeepSeek)'}
+                            </span>
+                            <span class="text-xs text-gray-400">第${m.round}轮</span>
+                        </div>
+                        <div class="text-gray-700 whitespace-pre-wrap">${m.content}</div>
+                    </div>
+                `).join('');
+                document.getElementById('task-panel').classList.add('hidden');
+            }
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function connectWebSocket() {
+            if (ws) ws.close();
+            ws = new WebSocket(`ws://localhost:8000/api/ws/${currentSessionId}`);
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWSMessage(data);
+            };
+
+            ws.onclose = () => console.log('WebSocket closed');
+            ws.onerror = (e) => console.error('WebSocket error', e);
+        }
+
+        function handleWSMessage(data) {
+            const container = document.getElementById('messages-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (data.type === 'thinking') {
+                emptyState.classList.add('hidden');
+                const thinkingEl = document.getElementById('thinking-' + data.speaker);
+                if (thinkingEl) thinkingEl.remove();
+
+                const el = document.createElement('div');
+                el.id = 'thinking-' + data.speaker;
+                el.className = 'thinking bg-white rounded-lg p-4 shadow-sm';
+                el.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium text-sm ${data.speaker === 'A' ? 'text-indigo-600' : 'text-purple-600'}">
+                            ${data.speaker === 'A' ? '产品大神张小龙 (MiniMax)' : '产品大神张小龙 (DeepSeek)'}
+                        </span>
+                        <span class="text-xs text-gray-400">思考中...</span>
+                    </div>
+                `;
+                container.appendChild(el);
+                container.scrollTop = container.scrollHeight;
+            } else if (data.type === 'chunk') {
+                const thinkingEl = document.getElementById('thinking-' + data.speaker);
+                if (thinkingEl) thinkingEl.remove();
+            } else if (data.type === 'message_end') {
+                const thinkingEl = document.getElementById('thinking-' + data.speaker);
+                if (thinkingEl) thinkingEl.remove();
+            } else if (data.type === 'end') {
+                if (ws) { ws.close(); ws = null; }
+                loadSessions();
+                selectSession(currentSessionId);
+            }
+        }
+
+        document.getElementById('btn-new-session').addEventListener('click', createSession);
+
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            document.getElementById('api-key-panel').classList.toggle('hidden');
+        });
+
+        document.getElementById('btn-save-keys').addEventListener('click', async () => {
+            const minimax = document.getElementById('key-minimax').value;
+            const deepseek = document.getElementById('key-deepseek').value;
+            await fetch('/api/settings/keys', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ minimax, deepseek })
+            });
+            document.getElementById('api-key-panel').classList.add('hidden');
+        });
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            const task = document.getElementById('task-input').value;
+            const firstMover = document.querySelector('input[name="first-mover"]:checked').value;
+            if (!task.trim()) return;
+
+            if (ws) ws.close();
+            connectWebSocket();
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ type: 'task', task, first_mover: firstMover }));
+            };
+
+            document.getElementById('task-panel').classList.add('hidden');
+        });
+
+        document.getElementById('session-list').addEventListener('click', (e) => {
+            const item = e.target.closest('.session-item');
+            if (item) selectSession(parseInt(item.dataset.id));
+        });
+
+        async function init() {
+            await loadDefaults();
+            await checkKeysStatus();
+            await loadSessions();
+        }
+
+        init();
+    </script>
+</body>
+</html>

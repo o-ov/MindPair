@@ -47,11 +47,17 @@ def update_keys(keys: APIKeys):
 
 @router.get("/settings/keys/status")
 def keys_status():
-    keys = get_api_keys()
-    return {
-        "minimax": bool(keys.minimax),
-        "deepseek": bool(keys.deepseek),
-    }
+    try:
+        keys = get_api_keys()
+        return {
+            "minimax": bool(keys.minimax),
+            "deepseek": bool(keys.deepseek),
+        }
+    except RuntimeError:
+        return {
+            "minimax": False,
+            "deepseek": False,
+        }
 
 
 @router.post("/settings/session/{session_id}")
